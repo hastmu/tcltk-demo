@@ -16,8 +16,15 @@ and that was obviously error free therefore it still works with my 4k panel ;).
 
 TBU
 
+# outlook
+
+If i get borded, i may add:
+* OP-Codes for the scrollline - as effect trigger
+* more classic demo elements
+
 # know Bugs
 
-TBU
+* unbelievable loading time (i never debugged that so far, but it was faster on a P166 than today)
+* scrollline uses wrong size for "space" so this is a bit jumpy
 
 # Files will follow next weeks...
