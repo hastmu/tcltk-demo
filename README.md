@@ -1,2 +1,23 @@
 # tcltk-demo
-tcltk demo as appreciation for all tcl/tk developers - tcl/tk served me well. THX.
+a tcltk demo i did late in the 90's - so sharing this is my thx to all tcltk developers.
+Thx you spend all the effort and time.
+
+# Background Story
+I did in the end of the 90's some LAN-Parties - yes - exactly what you think - carry a 
+super heavy (not large) monitor including PC to a room with a lot of people and network.
+Setting up some servers for the games and have some hours of fun.
+
+So for what was this? We needed some welcome stuff for the people and therefore this was
+running with onboarding infos and network configs via a beamer (sometimes 640x480, sometimes
+800x600, sometimes 1024x768) - fun fact of this i was programming this screen size agnositc
+and that was obviously error free therefore it still works with my 4k panel ;).
+
+# How does it look like?
+
+TBU
+
+# know Bugs
+
+TBU
+
+# Files will follow next weeks...
