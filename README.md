@@ -14,7 +14,7 @@ and that was obviously error free therefore it still works with my 4k panel ;).
 
 # How does it look like?
 
-TBU
+![Like this](animation.gif)
 
 # outlook
 
