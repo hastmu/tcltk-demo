@@ -28,4 +28,11 @@ If i get borded and there is intrest, i may add:
 * scrollline uses wrong size for "space" so this is a bit jumpy
 * ugly code
 
-# Files will follow next weeks...
+# How to start...
+
+```shell
+./main.tk
+```
+
+you need tcl/tk installed.
+
