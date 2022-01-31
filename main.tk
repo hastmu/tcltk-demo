@@ -1,0 +1,532 @@
+#!/bin/sh
+# the next line restarts using wish \
+exec wish "$0" "$@"
+
+# (C)2022 by gh-hastmu@gmx.de - GPL v2 see LICENSE.
+
+# hide main window
+#
+wm withdraw .
+
+
+proc terminate {} {
+	foreach id "[after info]" {
+		after cancel $id
+	}
+	exit
+}
+#
+# kill old after events
+#
+foreach id "[after info]" {
+	after cancel $id
+}
+
+#
+# global proc
+#
+#######################################################
+
+proc int { str } {
+	if {[string first "." "$str"] != -1} {
+		return "[string range "$str" 0 [expr [string first "." "$str"]-1]]"
+	} else {
+	 	return "$str"
+	}
+}
+proc destroy_childs { widget  } {
+	foreach item "[winfo children $widget]" {
+		destroy $item
+	}
+}
+proc upper { widget } {
+	raise $widget
+	eval after 250 \{ upper [set widget] \}
+}
+
+#######################################################
+
+
+set wx [winfo screenwidth .]
+set wy [winfo screenheight .]
+
+
+set ymain [int "[expr $wy * 0.125]"]
+set hmain [int "[expr $wy * 0.05 ]"]
+set ytext [int "[expr $wy * 0.3 ]"]
+set htext [int "[expr $wy * 0.6 ]"]
+set bstarty [int "[expr $wy * 0.95]"]
+
+catch { font delete tt }
+font create tt -size [int "[expr $hmain * 0.35]"]
+
+catch { font delete normal }
+font create normal -size [int "[expr $hmain * 0.35]"]
+
+catch { font delete tte }
+font create tte -size [int "[expr $hmain * 0.75]"]
+catch { font delete big }
+font create big -size [int "[expr $hmain * 0.5]"]
+
+set filetoload "-"
+set header     "TCL-TK thx you served me well."
+
+destroy_childs .
+
+toplevel .black
+wm overrideredirect .black 1
+.black configure -bg black
+wm geometry .black ${wx}x${wy}+0+0
+raise .black
+raise .black
+
+proc scrollline { widget startx endx starty font speed text color { first 1 }} {
+
+	if { $first } {
+		set spacew	[font measure $font " "]
+		set spacestr	""
+		set spacelimit  [expr ($endx - $startx) / $spacew ]
+		set minlength	"$spacelimit"
+		puts "spacelimit: $spacelimit"
+		puts "spacew    : $spacew"
+		for { set i 0 } { $i < $spacelimit } { incr i } {
+                	set spacestr "$spacestr   "
+                	#puts "$i"
+		}
+		set text "$spacestr $text $spacestr"
+	set sheight 	[font metrics $font -linespace]
+	set bwidth 	0
+	set lstr  	[string length "$text"]
+	for { set i 0 } { $i < $lstr } { incr i } {
+		set btemp [font measure $font "[string range "$text" $i $i]"]
+		if { $btemp > $bwidth } {
+		 	set bwidth "$btemp"
+		}
+	}
+	puts "sheight: $sheight"
+	puts "bwidth : $bwidth"
+
+	toplevel $widget
+	#wm withdraw $widget
+	wm overrideredirect $widget 1
+
+	toplevel $widget.leftblack
+	#wm withdraw $widget.leftblack
+	wm overrideredirect $widget.leftblack 1
+	set lb [frame $widget.leftblack.f -width $bwidth -height $sheight -bg $color]
+	pack propagate $lb false
+	pack $lb -side top
+
+	toplevel $widget.rightblack
+	#wm withdraw $widget.rightblack
+	wm overrideredirect $widget.rightblack 1
+	set rb [frame $widget.rightblack.f -width $bwidth -height $sheight -bg $color]
+	pack propagate $rb false
+	pack $rb -side top
+
+	set main [frame $widget.frame -width [expr ( $endx - $startx ) - $bwidth] -height $sheight -bg $color]
+        pack propagate $main false
+        pack $main -side top
+
+	wm geometry $widget.leftblack  +[int "$startx"]+600
+	wm geometry $widget.rightblack +[int "[expr $endx - $bwidth]"]+600
+	wm geometry $widget            +[int "[expr $startx + $bwidth]"]+600
+
+	puts "Text: $text"
+	label $main.l -text "$text" -font $font -bg $color
+	pack $main.l -side top -padx 0 -pady 0
+
+	puts "scrollit: [expr $startx+$bwidth] 710 $font $widget $speed $minlength text 0"
+	eval after $speed \{ scrollit [expr $startx+$bwidth] 710 $font $widget $speed $minlength \"$text\" 0 \}
+
+	}
+}
+
+proc scrollit { startx starty font widget speed minlength fulltext step } {
+
+	set dd [int "[lindex "[split "[wm geometry $widget]" "+"]" 2]"]
+	#puts "$dd [wm geometry $widget]"
+	wm geometry $widget +[int "[expr $startx - $step]"]+$dd
+	incr step
+	set text "[lindex "[$widget.frame.l configure -text]" 4]"
+	set char [string range "$text" 0 0]
+	#puts "widget: $widget $text"
+	if { [font measure $font "$char"] > $step } {
+		#puts "next [font measure $font "$char"]  $text"
+		if {[string length "$text"] < $minlength } {
+			set text "$text$fulltext"
+		}
+		$widget.frame.l configure -text "[string range "$text" 1 end]"
+		wm geometry $widget +${startx}+$dd
+		set step 0
+		#return
+	} 
+	update idletasks
+	eval after $speed \{ scrollit $startx $starty $font $widget $speed $minlength \"$fulltext\" $step \}
+}
+
+proc create_scrollline { widget incolor colorheight textcolor textheight starty} {
+
+	set wx [winfo screenwidth .]
+	set wy [winfo screenheight .]
+
+	set index 0
+	set lindex "[llength "$incolor"]"
+	foreach color "$incolor" {
+		puts "$color"
+		if {[winfo exists $widget.b$index] == 0} {
+			toplevel $widget.b$index
+			wm overrideredirect $widget.b$index 1
+			$widget.b$index configure -bg $color
+		}
+		wm geometry $widget.b$index ${wx}x${colorheight}+0+[expr ${starty} + ($colorheight * $index)]
+		if {[winfo exists $widget.e$index] == 0} {
+			toplevel $widget.e$index
+			wm overrideredirect $widget.e$index 1
+			$widget.e$index configure -bg $color
+		}
+		wm geometry $widget.e$index ${wx}x${colorheight}+0+[expr ${starty} + ($colorheight * ($lindex - $index)) + ${textheight}]
+		incr index
+	}
+	if {[winfo exists $widget.text] == 0} {
+		toplevel $widget.text
+		wm overrideredirect $widget.text 1
+		$widget.text configure -bg $textcolor
+	}
+	wm geometry $widget.text ${wx}x${textheight}+0+[expr ${starty} + ($colorheight * $lindex)]
+}
+
+
+proc create_scrollline2 { widget incolor colorheight textcolor textheight starty} {
+
+	set wx [expr 2*[winfo screenwidth .]]
+	set wy [winfo screenheight .]
+	set index 0
+	set lindex "[llength "$incolor"]"
+
+	set main "$widget"
+	if {[winfo exists $main] == 0} {
+		toplevel $main
+		wm overrideredirect $main 1
+		$main configure -width $wx -height [expr $colorheight * $lindex * 2 + $textheight ]
+		frame $main.f -width $wx -height [expr $colorheight * $lindex * 2 + $textheight ]
+		pack propagate $main.f false
+		pack $main.f
+		set first ""
+		set last  ""
+		set index 0
+		foreach color "$incolor" {
+			frame $main.f.b$index -width $wx -height $colorheight -bg $color
+			pack propagate $main.f.b$index false
+			set first "$first $main.f.b$index"
+
+			frame $main.f.e$index -width $wx -height $colorheight -bg $color
+			pack propagate $main.f.e$index false
+			set last "$main.f.e$index $last"
+
+			incr index
+		}
+		frame $main.f.text -width $wx -height $textheight -bg $textcolor
+		pack propagate $main.f.text false
+		eval pack [set first] $main.f.text [set last]
+	}
+	return
+	if {[winfo exists $widget.text] == 0} {
+		toplevel $widget.text
+		wm overrideredirect $widget.text 1
+		$widget.text configure -bg $textcolor
+	}
+	wm geometry $widget.text ${wx}x${textheight}+0+[expr ${starty} + ($colorheight * $lindex)]
+}
+
+proc create_scrollline3 { widget incolor colorheight textcolor textheight starty} {
+
+	set wx [expr [winfo screenwidth .]]
+	set wy [winfo screenheight .]
+	set index 0
+	set lindex "[llength "$incolor"]"
+
+	set main "$widget"
+	if {[winfo exists $main] == 0} {
+		toplevel $main
+		wm overrideredirect $main 1
+		$main configure -width $wx -height [expr $colorheight * $lindex * 2 + $textheight ]
+		frame $main.f -width $wx -height [expr $colorheight * $lindex * 2 + $textheight ]
+		pack propagate $main.f false
+		pack $main.f
+		set first ""
+		set last  ""
+		set index 0
+		foreach color "$incolor" {
+			frame $main.f.b$index -width $wx -height $colorheight -bg $color
+			pack propagate $main.f.b$index false
+			set first "$first $main.f.b$index"
+
+			frame $main.f.e$index -width $wx -height $colorheight -bg $color
+			pack propagate $main.f.e$index false
+			set last "$main.f.e$index $last"
+
+			incr index
+		}
+		frame $main.f.text -width $wx -height $textheight -bg $textcolor
+		pack propagate $main.f.text false
+		eval pack [set first] $main.f.text [set last]
+	}
+	return
+	if {[winfo exists $widget.text] == 0} {
+		toplevel $widget.text
+		wm overrideredirect $widget.text 1
+		$widget.text configure -bg $textcolor
+	}
+	wm geometry $widget.text ${wx}x${textheight}+0+[expr ${starty} + ($colorheight * $lindex)]
+}
+
+
+puts "hmain: $hmain"
+puts "ymain: $ymain"
+create_scrollline2 ".maintext" "#202020 #404040 #808080 #a0a0a0 #e0e0e0 #f0f0f0" 2 #f5f5f5 $hmain $ymain
+raise .maintext .black
+
+#proc scrollline { widget startx endx starty font text } {
+
+set scrolllinetext ""
+set scrolllinetext "$scrolllinetext                                                                                  "
+set scrolllinetext "$scrolllinetext Welcome to this old school demo ...                                              "
+set scrolllinetext "$scrolllinetext originally this was written as demo just like in the old days of C64 demos       "
+set scrolllinetext "$scrolllinetext ok not in assembler, LOL.                                                        "
+set scrolllinetext "$scrolllinetext after ~20 years i found this beautyful <1k lines of code and was wondering what to do"
+set scrolllinetext "$scrolllinetext so i dedicded to share it - as donation for the tcl-tk community - to show what was done."
+set scrolllinetext "$scrolllinetext "
+set scrolllinetext "$scrolllinetext                                                                                  "
+set scrolllinetext "$scrolllinetext                                                                                  "
+set scrolllinetext "$scrolllinetext $scrolllinetext"
+
+
+scrollline .line 0 $wx 700 tt 20 "$scrolllinetext" #f0f0f0
+
+create_scrollline3 ".text" "#202020 #404040 #808080 #a0a0a0 #e0e0e0 #f0f0f0" 2 #f5f5f5 $htext $ytext
+wm geometry .text +0+${ytext}
+
+puts "[int "[expr $hmain * 0.6]"]"
+create_scrollline2 ".scroll" "blue #a0a0ff #e0e0ff" 2 #f0f0ff "[int "[expr $hmain * 0.6]"]" 100
+raise .scroll .maintext
+wm geometry .maintext +0+475
+
+
+label .maintext.f.text.l -textvariable header -bg #f0f0f0 -font tte
+pack  .maintext.f.text.l -side top
+
+proc inserttext { text str tags } {
+
+   #
+   # wertet tags im text aus und f�gt sie richtig ins text-widget ein, wo die tags
+   # bereits definiert sein sollten. :)
+   #
+   global header
+
+   puts "enter: $str $tags"
+   while { [string length "$str"] != 0} {
+      set tindex [string first "<" "$str"]
+      set doreturn 0
+      if {[string compare "/" "[string range "$str" [expr $tindex +1] [expr $tindex +1]]"] == 0} {
+       	 set doreturn 1
+      }
+      if { $tindex != -1} {
+	$text insert end "[string range "$str" 0 [expr $tindex -1]]" "$tags"
+	set nstr "[string range "$str" [expr $tindex +1] end]"
+	set eindex [string first ">" "$nstr"]
+	if { $eindex == -1} {
+	   puts "Fehler: kein ende fuer tag in $tmpstr"
+	} else {
+           set ntag "[string range "$nstr" 0 [expr $eindex -1]]"
+           set rstr "[string range "$nstr" [expr $eindex + 1] end]"
+	   switch -exact "$ntag" {
+
+	 	h       { # header �ndern
+			  set ntindex "[string first "</h>" "$rstr"]"
+			  set header  "[string range "$rstr" 0 [expr $ntindex -1]]"
+			  set rstr    "[string range "$rstr" [expr $ntindex + 4] end]"
+			  puts "Header: $header"
+		       	  set str "[inserttext $text "$rstr" "$tags"]"
+			  return "$str"
+			}
+           }
+           if { $doreturn == 0 } {
+           	set str "[inserttext $text "$rstr" "$tags $ntag"]"
+           } else {
+            	return "$rstr"
+           }
+	}
+      } else {
+       	$text insert end "$str" "$tags"
+       	set str ""
+      }
+   }
+   return ""
+}
+
+proc loadtext { filename text } {
+
+	$text delete 1.0 end
+	if {[file exists "$filename"] == 1} {
+		if {[file readable "$filename"] == 1} {
+			set fileid "[open "$filename" r]"
+			set tmpstr ""
+			while {[eof $fileid] == 0} {
+				gets $fileid tmp
+				puts "got: $tmp"
+				set tmpstr "$tmpstr$tmp\n"
+				puts "tmp: $tmpstr"
+			}
+			close $fileid
+			puts "tmpstr: $tmpstr"
+			inserttext $text "$tmpstr" "normal fader"
+		}
+	}
+}
+
+proc fade_text_in { text tag } {
+	foreach color "#f0f0f0 #e0e0e0 #a0a0a0 #808080 #404040 #202020 #000000 " {
+                $text tag configure $tag -foreground $color
+                update idletasks
+                set ::lala 0
+                after 100 { set ::lala 1 }
+                vwait ::lala
+	}
+}
+
+proc fade_text_out { text tag } {
+	foreach color "#000000 #202020 #404040 #808080 #a0a0a0 #e0e0e0 #f0f0f0" {
+                $text tag configure $tag -foreground $color
+                update idletasks
+                set ::lala 0
+                after 100 { set ::lala 1 }
+                vwait ::lala
+	}
+}
+
+toplevel .b1 -bg black
+wm overrideredirect .b1 1
+wm geometry .b1 +10+${bstarty}
+
+
+button .b1.b1 -text "fi" -command { fade_text_in $textinfo fader } -relief flat -bg black -fg #606060
+button .b1.b2 -text "fo" -command { fade_text_out $textinfo fader } -relief flat -bg black -fg #606060
+button .b1.b3 -text "quit" -command { terminate }
+pack .b1.b1 .b1.b2 .b1.b3 -side left
+
+set textinfo [text .text.f.text.info -relief flat -bg #f0f0f0 -font tt -tabs "100 200 300 400" -wrap word ]
+pack $textinfo -side top -expand yes -fill both -padx [int "[expr $wx * 0.05]"] -pady 10
+$textinfo tag configure fader -foreground black
+$textinfo tag configure blue -foreground blue
+$textinfo tag configure red -foreground red
+$textinfo tag configure big -font big
+$textinfo tag configure c -justify center
+$textinfo tag configure s -font tt
+$textinfo tag configure b -font tte -relief sunken
+$textinfo insert end "Welcome to this old school demo\n" "c b fader"
+$textinfo insert end "\n" "c b fader"
+$textinfo insert end "- scroll line\n" "fader"
+$textinfo insert end "- fade-in, fade-out\n" "fader"
+$textinfo insert end "\n" "fader"
+$textinfo insert end "tcl/tk offered here enough to do the demo, actually only v-sync is missing :)\n" "fader"
+$textinfo insert end "\n" "fader"
+$textinfo insert end "Enough, hastmu" "fader"
+
+
+proc settext { str } {
+	.scroll.f.text.l configure -text "$str"
+	update idletasks
+}
+
+proc rendertext { current aim } {
+
+	set result ""
+	for { set i 0 } { $i < [string length "$aim"] } { incr i} {
+		set char "[string range "$current" $i $i]"
+		set achar "[string range "$aim" $i $i]"
+		if {[string length "$char"] == 0} { set char "a" }
+		if {[string compare "$achar" " "] == 0} { set char " " }
+		if {[string compare "$char" "$achar"] != 0} {
+			 if {[string compare "$char" "z"] == 0} {
+				set char "@"
+			 }
+			 if {[string compare "$char" "Z"] == 0} {
+				set char "[binary format c 31]"
+			 }
+			 binary scan $char c tmp
+			 incr tmp
+			 set char "[binary format c $tmp]"
+		}
+		set result "$result$char"
+	}
+	return "$result"
+}
+
+set text "Hi Folks now its time to do some great stuff :) ... I am sure you like this and maybe you are intressed in how it works. For all guys who like this, please tell it to me ... :) "
+
+set ctext ""
+set frequenz 0.1
+
+proc move_xsin { widget xoffset xapl xfrequenz maincount ymain wx { rtime 100 }} {
+
+	wm geometry $widget +[int "[expr ${xoffset}+${xapl}*sin($maincount*$xfrequenz)]"]+${ymain}
+	incr maincount
+	update idletasks
+	eval after $rtime \{ move_xsin $widget $xoffset $xapl $xfrequenz $maincount $ymain $wx $rtime \}
+}
+
+proc move_ysin { widget yoffset yapl yfrequenz maincount xmain { rtime 100 }} {
+
+	wm geometry $widget +${xmain}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)]"]
+	incr maincount
+	update idletasks
+	eval after $rtime \{ move_ysin $widget $yoffset $yapl $yfrequenz $maincount $xmain $rtime \}
+
+}
+
+proc move_ysin_hide { widgetlist hwidget yoffset yapl yfrequenz maincount xmain { rtime 100 }} {
+
+	foreach widget "$widgetlist" {
+		if { cos($maincount*$yfrequenz) > 0 } { raise $widget $hwidget } else { raise $hwidget $widget }
+		set xst [int "[lindex "[split "[wm geometry $widget]" "+"]" 1]"]
+		wm geometry $widget +${xst}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)]"]
+		incr maincount
+	}
+	update idletasks
+	eval after $rtime \{ move_ysin_hide \"$widgetlist\" $hwidget $yoffset $yapl $yfrequenz $maincount $xmain $rtime \}
+}
+
+proc move_ysin_hide_scroller { widget scroller hwidget yoffset yapl yfrequenz maincount xmain { rtime 100 }} {
+
+	if { cos($maincount*$yfrequenz) > 0 } { raise $widget $hwidget } else { raise $hwidget $widget }
+	raise $scroller $widget
+	raise $scroller.leftblack $scroller
+	raise $scroller.rightblack $scroller
+
+	set scrolleroffset 8
+
+	set xst [int "[lindex "[split "[wm geometry $widget]" "+"]" 1]"]
+	wm geometry $widget +${xst}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)]"]
+	#puts "[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)]"]"
+
+	set xst [int "[lindex "[split "[wm geometry $scroller]" "+"]" 1]"]
+	wm geometry $scroller +${xst}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)+$scrolleroffset]"]
+
+	set xst [int "[lindex "[split "[wm geometry $scroller.leftblack]" "+"]" 1]"]
+	wm geometry $scroller.leftblack +${xst}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)+$scrolleroffset]"]
+
+	set xst [int "[lindex "[split "[wm geometry $scroller.rightblack]" "+"]" 1]"]
+	wm geometry $scroller.rightblack +${xst}+[int "[expr ${yoffset}+${yapl}*sin($maincount*$yfrequenz)+$scrolleroffset]"]
+
+	incr maincount
+	update idletasks
+	eval after $rtime \{ move_ysin_hide_scroller $widget $scroller $hwidget $yoffset $yapl $yfrequenz $maincount $xmain $rtime \}
+}
+
+
+puts "movex"
+move_xsin .maintext [int "[expr $wx * (-0.5)]"] [int "[expr $wx * 0.25]"] 0.05 0 $ymain $wx 50
+puts "movey [winfo height .maintext] [expr $ymain + [winfo height .maintext] / 2.0 ]"
+move_ysin_hide_scroller .scroll .line .maintext [int "[expr $ymain + [winfo height .maintext] / 2.0 - [winfo height .scroll] / 2.0 ]"] [int "[expr $wx * (0.05)]"] 0.1 0 0 50
+

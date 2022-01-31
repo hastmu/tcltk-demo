@@ -18,7 +18,7 @@ and that was obviously error free therefore it still works with my 4k panel ;).
 
 # outlook
 
-If i get borded, i may add:
+If i get borded and there is intrest, i may add:
 * OP-Codes for the scrollline - as effect trigger
 * more classic demo elements
 
@@ -26,5 +26,6 @@ If i get borded, i may add:
 
 * unbelievable loading time (i never debugged that so far, but it was faster on a P166 than today)
 * scrollline uses wrong size for "space" so this is a bit jumpy
+* ugly code
 
 # Files will follow next weeks...
