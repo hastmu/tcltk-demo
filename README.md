@@ -1,5 +1,5 @@
 # tcltk-demo
-a tcltk demo i did late in the 90's - so sharing this is my thx to all tcltk developers.
+a tcltk demo (like those c64 ones) i did late in the 90's - so sharing this is my thx to all tcltk developers.
 Thx you spend all the effort and time.
 
 # Background Story
